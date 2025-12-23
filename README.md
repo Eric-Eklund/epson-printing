@@ -254,11 +254,40 @@ print-pdf.sh            - PDF printing with full control
 ```
 
 ### Check Printer Status
+
+**Command Line:**
 ```bash
 lpstat -p -d                                    # Printer status
 lpoptions -p EPSON_ET-8550_Series -l           # All available options
-lpstat -p EPSON_ET-8550_Series -l | grep marker # Ink levels
+
+# Check ink levels via IPP
+ipptool -tv ipp://EPSON5810AB.local:631/ipp/print get-printer-attributes.test 2>&1 | grep -i "marker-levels"
 ```
+
+**Web Interface:**
+```
+http://EPSON5810AB.local.:80/PRESENTATION/HTML/TOP/PRTINFO.HTML
+```
+
+**What you can monitor:**
+- **Ink Tank Levels** - All 6 color tanks (MB, PB, C, Y, M, GY)
+- **Waste Ink Maintenance Box** - Water droplet icon (far right)
+
+**About the Waste Ink Maintenance Box:**
+
+The maintenance box (water droplet symbol) collects waste ink from:
+- Print head cleaning cycles
+- Borderless printing overspray (ink sprayed beyond paper edges)
+- Initial ink charging and maintenance operations
+
+**Important Notes:**
+- Borderless printing uses more waste ink than bordered prints
+- Replacement part: **Epson T04D1** Maintenance Box
+- Printer alerts you at ~90% full
+- EcoTank boxes last thousands of prints (much larger than traditional Epson printers)
+- Monitor occasionally if doing frequent borderless printing
+
+**When to replace:** The printer will display a warning when the box is nearly full. Continue printing until prompted - no need to replace early.
 
 ---
 
