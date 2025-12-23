@@ -20,29 +20,42 @@ Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
 
 **Syntax:**
 ```bash
-./print-folder.sh [folder] [paper-size] [tray]
+./print-folder.sh [folder] [paper-size] [tray] [media-type] [quality]
 ```
 
 **Parameters:**
 - `folder` - Path to folder containing images (default: current directory)
 - `paper-size` - Paper size with optional .Borderless suffix (default: A4.Borderless)
 - `tray` - Paper source: Auto, Photo, Main, Rear (default: Auto)
+- `media-type` - Media type using friendly names or full CUPS names (default: glossy)
+- `quality` - Print quality: 3 (draft), 4 (high), 5 (best) (default: 5)
 
-**Fixed Settings:**
-- Media: `photographic-glossy` (hardcoded - edit script to change)
-- Quality: `5` (best)
-- File types: JPG, JPEG, PNG, TIF
+**Media Type Aliases (case-insensitive):**
+- `ultra` / `ultra-glossy` / `high-gloss` → Ultra Glossy Photo Paper
+- `glossy` → Standard Glossy (default)
+- `semi` / `semi-glossy` / `luster` → Semi-gloss/Luster
+- `matte` → Matte Photo Paper
+- `photo` / `photographic` → Generic Photographic
+- `plain` / `paper` → Plain Paper
+- `coated` / `inkjet` → Coated Inkjet Paper
+- `velvet` / `fine-art` → Fine Art Paper
+- Or use full CUPS names: `PhotographicHighGloss`, `PhotographicGlossy`, etc.
+
+**File Types:** JPG, JPEG, PNG, TIF
 
 **Examples:**
 ```bash
-# 4x6 photos on glossy paper from Photo tray
-./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo
+# 4x6 photos on ultra glossy paper from Photo tray, best quality
+./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 5
 
-# A3 borderless from Rear tray
-./print-folder.sh /path/to/photos A3.Borderless Rear
+# A3 borderless matte from Rear tray, high quality
+./print-folder.sh /path/to/photos A3.Borderless Rear matte 4
 
-# A4 borderless, auto-select tray
+# A4 borderless glossy, auto-select tray (uses defaults: glossy, quality 5)
 ./print-folder.sh /path/to/photos A4.Borderless Auto
+
+# Quick test prints with draft quality
+./print-folder.sh /path/to/photos 4x6.Borderless Photo glossy 3
 ```
 
 **Output:**
@@ -50,6 +63,8 @@ Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
 Printing all images from: /path/to/photos
 Paper size: 4x6.Borderless
 Paper tray: Photo
+Media type: ultra → PhotographicHighGloss
+Quality: 5 (3=draft, 4=high, 5=best)
 
 Printing: IMG_001.jpg
 Printing: IMG_002.jpg
@@ -181,8 +196,11 @@ request id is EPSON_ET-8550_Series-42 (1 file(s))
 ### Photo Printing from Lightroom
 ```bash
 # 1. Export from Lightroom to folder
-# 2. Batch print all photos
-./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo
+# 2. Test print one photo with draft quality
+./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 3
+
+# 3. Batch print all photos with best quality
+./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 5
 ```
 
 ### Calendar/Poster Printing
@@ -216,8 +234,11 @@ print-pdf.sh            - PDF printing with full control
 
 ### Most Common Commands
 ```bash
-# Batch print 4x6 photos
-./print-folder.sh /path/to/photos 4x6.Borderless Photo
+# Batch print 4x6 photos on ultra glossy (best quality)
+./print-folder.sh /path/to/photos 4x6.Borderless Photo ultra 5
+
+# Quick draft test of 4x6 photos
+./print-folder.sh /path/to/photos 4x6.Borderless Photo ultra 3
 
 # Test print A3+ matte (page 1, draft)
 ./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
