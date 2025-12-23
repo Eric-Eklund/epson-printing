@@ -2,6 +2,29 @@
 
 Documentation for bash printing scripts and future Go IPP implementation.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Printing Scripts](#printing-scripts)
+  - [1. Photo Batch Printing (`print-folder.sh`)](#1-photo-batch-printing-print-foldersh)
+  - [2. PDF Printing (`print-pdf.sh`)](#2-pdf-printing-print-pdfsh)
+- [Available Options Reference](#available-options-reference)
+  - [Paper Sizes](#paper-sizes)
+  - [Paper Trays (InputSlot)](#paper-trays-inputslot)
+  - [Media Types](#media-types)
+  - [Print Quality](#print-quality)
+- [Typical Workflows](#typical-workflows)
+  - [Photo Printing from Lightroom](#photo-printing-from-lightroom)
+  - [Calendar/Poster Printing](#calendarposter-printing)
+  - [Document Printing](#document-printing)
+- [Quick Reference](#quick-reference)
+  - [Scripts in This Repository](#scripts-in-this-repository)
+  - [Most Common Commands](#most-common-commands)
+  - [Check Printer Status](#check-printer-status)
+- [Future Development](#future-development)
+
+---
+
 ## Overview
 
 Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
