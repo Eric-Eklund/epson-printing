@@ -1,0 +1,252 @@
+# Epson ET-8550 Printing Scripts & Go Development
+
+Documentation for bash printing scripts and future Go IPP implementation.
+
+## Overview
+
+Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
+- **`print-folder.sh`** - Batch print photos from folders
+- **`print-pdf.sh`** - Print PDFs with full control
+
+**Future development:** See [GO-DEVELOPMENT.md](GO-DEVELOPMENT.md) for plans to implement a Go version using IPP protocol.
+
+---
+
+## Printing Scripts
+
+### 1. Photo Batch Printing (`print-folder.sh`)
+
+**Purpose:** Print all photos in a folder (Lightroom export workflow)
+
+**Syntax:**
+```bash
+./print-folder.sh [folder] [paper-size] [tray]
+```
+
+**Parameters:**
+- `folder` - Path to folder containing images (default: current directory)
+- `paper-size` - Paper size with optional .Borderless suffix (default: A4.Borderless)
+- `tray` - Paper source: Auto, Photo, Main, Rear (default: Auto)
+
+**Fixed Settings:**
+- Media: `photographic-glossy` (hardcoded - edit script to change)
+- Quality: `5` (best)
+- File types: JPG, JPEG, PNG, TIF
+
+**Examples:**
+```bash
+# 4x6 photos on glossy paper from Photo tray
+./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo
+
+# A3 borderless from Rear tray
+./print-folder.sh /path/to/photos A3.Borderless Rear
+
+# A4 borderless, auto-select tray
+./print-folder.sh /path/to/photos A4.Borderless Auto
+```
+
+**Output:**
+```
+Printing all images from: /path/to/photos
+Paper size: 4x6.Borderless
+Paper tray: Photo
+
+Printing: IMG_001.jpg
+Printing: IMG_002.jpg
+...
+Sent 24 images to printer!
+```
+
+---
+
+### 2. PDF Printing (`print-pdf.sh`)
+
+**Purpose:** Print PDFs with complete control over all settings
+
+**Syntax:**
+```bash
+./print-pdf.sh <pdf-file> [paper-size] [tray] [media-type] [quality] [pages]
+```
+
+**Parameters:**
+- `pdf-file` - Path to PDF file (required)
+- `paper-size` - Paper size (default: A4.Borderless)
+- `tray` - Paper source (default: Auto)
+- `media-type` - Media type (default: photographic-glossy)
+- `quality` - Print quality 3-5 (default: 4)
+- `pages` - Page range (default: all)
+
+**Page Range Syntax (Go-style slices):**
+| Syntax | Prints | Description |
+|--------|--------|-------------|
+| `1` | Page 1 | Single page |
+| `1-5` | Pages 1-5 | Range notation |
+| `1,3,5` | Pages 1,3,5 | Specific pages |
+| `:5` | Pages 1-5 | **Go slice: first to 5** |
+| `5:` | Pages 5-end | **Go slice: 5 to end** |
+| `all` | All pages | All (default, can omit) |
+
+**Examples:**
+```bash
+# Basic usage (defaults: A4 borderless, auto, glossy, quality 4, all pages)
+./print-pdf.sh document.pdf
+
+# A3+ matte, best quality, page 1 only (test print)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5 1
+
+# Same but full quality (final print)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
+
+# Print pages 2-5
+./print-pdf.sh document.pdf A4.Borderless Main stationery 4 2-5
+
+# Go-style: Print first 5 pages
+./print-pdf.sh document.pdf A4.Borderless Auto photographic-glossy 4 :5
+
+# Go-style: Print from page 5 to end
+./print-pdf.sh document.pdf A4.Borderless Auto photographic-glossy 4 5:
+
+# Draft quality on plain paper
+./print-pdf.sh document.pdf A4 Main stationery 3
+
+# Pages 1 and 3 only
+./print-pdf.sh document.pdf A4 Main stationery 4 1,3
+```
+
+**Output:**
+```
+=========================================
+PDF PRINT SETTINGS
+=========================================
+File:        calendar.pdf
+Paper size:  13x19.Borderless
+Tray:        Rear
+Media type:  photographic-matte
+Quality:     5 (3=draft, 4=high, 5=best)
+Pages:       :5 (converted to 1-5)
+=========================================
+
+request id is EPSON_ET-8550_Series-42 (1 file(s))
+✓ Print job sent successfully!
+```
+
+---
+
+## Available Options Reference
+
+### Paper Sizes
+
+**Common Sizes:**
+- `4x6.Borderless` - 101.6x152.4mm (standard photo)
+- `5x7.Borderless` - 127x178mm
+- `8x10.Borderless` - 203x254mm
+- `A4.Borderless` - 210x297mm
+- `A3.Borderless` - 297x420mm
+- `13x19.Borderless` - 329x483mm **(A3+)**
+- `Letter.Borderless` - 8.5x11"
+
+**Note:** Add `.Borderless` for edge-to-edge printing, omit for margins.
+
+### Paper Trays (InputSlot)
+
+- `Auto` - Automatically select based on paper size
+- `Photo` - Front photo tray (4x6, 5x7)
+- `Main` - Main cassette (A4 documents)
+- `Rear` - Rear feed (A3, A3+, thick paper)
+- `Manual` - Manual feed
+- `Disc` - CD/DVD printing
+
+**Recommendation:**
+- Small photos (4x6, 5x7) → **Photo**
+- Large/thick (A3, A3+) → **Rear**
+- Documents (A4) → **Main**
+
+### Media Types
+
+- `photographic-glossy` - Glossy photo paper
+- `photographic-matte` - Matte photo paper
+- `stationery` - Plain copy paper
+- `stationery-inkjet` - Inkjet paper
+
+### Print Quality
+
+- `3` - Draft (fast, test prints)
+- `4` - High (normal prints)
+- `5` - Best (final prints, slow)
+
+---
+
+## Typical Workflows
+
+### Photo Printing from Lightroom
+```bash
+# 1. Export from Lightroom to folder
+# 2. Batch print all photos
+./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo
+```
+
+### Calendar/Poster Printing
+```bash
+# 1. Create in OnlyOffice/LibreOffice, export as PDF
+# 2. Test print one page (draft quality)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
+
+# 3. Final print all pages (best quality)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
+```
+
+### Document Printing
+```bash
+# Draft review
+./print-pdf.sh document.pdf A4 Main stationery 3
+
+# Final print, first 10 pages
+./print-pdf.sh document.pdf A4 Main stationery 4 :10
+```
+
+---
+
+## Quick Reference
+
+### Scripts in This Repository
+```
+print-folder.sh          - Photo batch printing
+print-pdf.sh            - PDF printing with full control
+```
+
+### Most Common Commands
+```bash
+# Batch print 4x6 photos
+./print-folder.sh /path/to/photos 4x6.Borderless Photo
+
+# Test print A3+ matte (page 1, draft)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
+
+# Final print A3+ matte (best quality)
+./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
+
+# Print document (A4 plain, draft)
+./print-pdf.sh document.pdf A4 Main stationery 3
+
+# Print first 5 pages (Go-style slice)
+./print-pdf.sh document.pdf A4 Auto stationery 4 :5
+```
+
+### Check Printer Status
+```bash
+lpstat -p -d                                    # Printer status
+lpoptions -p EPSON_ET-8550_Series -l           # All available options
+lpstat -p EPSON_ET-8550_Series -l | grep marker # Ink levels
+```
+
+---
+
+## Future Development
+
+Interested in a Go implementation with GUI, cross-platform support, and advanced features? See [GO-DEVELOPMENT.md](GO-DEVELOPMENT.md) for the complete development plan.
+
+---
+
+**Last Updated:** December 2025
+**Printer:** Epson EcoTank ET-8550
+**System:** Linux (tested on Arch-based systems)
