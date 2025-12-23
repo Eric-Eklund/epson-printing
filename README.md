@@ -43,15 +43,20 @@ Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
 
 **Syntax:**
 ```bash
+# Positional parameters (backward compatible)
 ./print-folder.sh [folder] [paper-size] [tray] [media-type] [quality]
+
+# Flag-based parameters (flexible - specify only what you need)
+./print-folder.sh [folder] [-p paper] [-t tray] [-m media] [-q quality]
 ```
 
 **Parameters:**
 - `folder` - Path to folder containing images (default: current directory)
-- `paper-size` - Paper size with optional .Borderless suffix (default: A4.Borderless)
-- `tray` - Paper source: Auto, Photo, Main, Rear (default: Auto)
-- `media-type` - Media type using friendly names or full CUPS names (default: glossy)
-- `quality` - Print quality: 3 (draft), 4 (high), 5 (best) (default: 5)
+- `-p` paper-size - Paper size with optional .Borderless suffix (default: 4x6.Borderless)
+- `-t` tray - Paper source: Auto, Photo, Main, Rear (default: Photo)
+- `-m` media-type - Media type using friendly names or full CUPS names (default: glossy)
+- `-q` quality - Print quality: 3 (draft), 4 (high), 5 (best) (default: 5)
+- `-h` - Show help message
 
 **Media Type Aliases (case-insensitive):**
 - `ultra` / `ultra-glossy` / `high-gloss` → Ultra Glossy Photo Paper
@@ -68,17 +73,23 @@ Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
 
 **Examples:**
 ```bash
-# 4x6 photos on ultra glossy paper from Photo tray, best quality
-./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 5
+# Use all defaults (4x6, Photo tray, glossy, quality 5)
+./print-folder.sh ~/Photos
 
-# A3 borderless matte from Rear tray, high quality
-./print-folder.sh /path/to/photos A3.Borderless Rear matte 4
+# Override only quality - draft prints with other defaults
+./print-folder.sh ~/Photos -q 3
 
-# A4 borderless glossy, auto-select tray (uses defaults: glossy, quality 5)
-./print-folder.sh /path/to/photos A4.Borderless Auto
+# Override specific settings with flags
+./print-folder.sh ~/Photos -p A4.Borderless -m ultra -q 5
 
-# Quick test prints with draft quality
-./print-folder.sh /path/to/photos 4x6.Borderless Photo glossy 3
+# A3 borderless matte, high quality (flags)
+./print-folder.sh ~/Photos -p A3.Borderless -t Rear -m matte -q 4
+
+# Positional parameters still work (backward compatible)
+./print-folder.sh ~/Photos 4x6.Borderless Photo ultra 5
+
+# Mix: change only media type to ultra, keep other defaults
+./print-folder.sh ~/Photos -m ultra
 ```
 
 **Output:**
@@ -257,11 +268,14 @@ print-pdf.sh            - PDF printing with full control
 
 ### Most Common Commands
 ```bash
-# Batch print 4x6 photos on ultra glossy (best quality)
-./print-folder.sh /path/to/photos 4x6.Borderless Photo ultra 5
+# Batch print 4x6 photos (uses defaults: 4x6, Photo, glossy, quality 5)
+./print-folder.sh ~/Photos
 
-# Quick draft test of 4x6 photos
-./print-folder.sh /path/to/photos 4x6.Borderless Photo ultra 3
+# Quick draft test - override only quality
+./print-folder.sh ~/Photos -q 3
+
+# Ultra glossy, best quality
+./print-folder.sh ~/Photos -m ultra
 
 # Test print A3+ matte (page 1, draft)
 ./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
