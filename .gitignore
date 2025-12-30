@@ -1,2 +1,12 @@
 CLAUDE.md
 .env
+
+# IDE
+.idea/
+.vscode/
+
+# Compiled binaries
+cmd/*/test-ipp
+cmd/*/test-print
+cmd/*/print-pdf
+*.exe
