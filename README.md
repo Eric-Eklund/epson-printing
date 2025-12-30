@@ -298,12 +298,12 @@ lpstat -p -d                                    # Printer status
 lpoptions -p EPSON_ET-8550_Series -l           # All available options
 
 # Check ink levels via IPP
-ipptool -tv ipp://EPSON5810AB.local:631/ipp/print get-printer-attributes.test 2>&1 | grep -i "marker-levels"
+ipptool -tv ipp://EPSONXXXXXX.local:631/ipp/print get-printer-attributes.test 2>&1 | grep -i "marker-levels"
 ```
 
 **Web Interface:**
 ```
-http://EPSON5810AB.local.:80/PRESENTATION/HTML/TOP/PRTINFO.HTML
+http://EPSONXXXXXX.local.:80/PRESENTATION/HTML/TOP/PRTINFO.HTML
 ```
 
 **What you can monitor:**
