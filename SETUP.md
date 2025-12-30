@@ -61,11 +61,10 @@ Use the URI from the output, replacing `ipp://localhost` with `http://localhost:
 ### 3. Build the Tools
 
 ```bash
-# Build test-ipp
-go build -o bin/test-ipp ./cmd/test-ipp
-
-# Build test-print
-go build -o bin/test-print ./cmd/test-print
+# Build all tools
+go build -o cmd/test-ipp/test-ipp ./cmd/test-ipp
+go build -o cmd/test-print/test-print ./cmd/test-print
+go build -o cmd/print-info/print-info ./cmd/print-info
 ```
 
 ## Usage
@@ -73,7 +72,7 @@ go build -o bin/test-print ./cmd/test-print
 ### Check Printer Status
 
 ```bash
-./bin/test-ipp
+./cmd/test-ipp/test-ipp
 ```
 
 Shows:
@@ -84,10 +83,23 @@ Shows:
 ### Test Print
 
 ```bash
-./bin/test-print
+./cmd/test-print/test-print
 ```
 
 Prints `testprint_gopher.pdf` on A4 plain paper from Main tray (draft quality).
+
+### Print Status Report
+
+```bash
+./cmd/print-info/print-info
+```
+
+Generates and prints a PDF status report containing:
+- Printer information (name, model, status)
+- Ink levels for all 6 tanks with visual bars
+- Program information (Go version, libraries used)
+- Timestamp and printer URI
+- Saves PDF as `printer-status-YYYYMMDD-HHMMSS.pdf` for reference
 
 ## Troubleshooting
 

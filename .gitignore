@@ -9,4 +9,8 @@ CLAUDE.md
 cmd/*/test-ipp
 cmd/*/test-print
 cmd/*/print-pdf
+cmd/*/print-info
 *.exe
+
+# Generated reports
+printer-status-*.pdf

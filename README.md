@@ -1,219 +1,326 @@
-# Epson ET-8550 Printing Scripts & Go Development
+<div align="center">
+  <img src="gopher-printer.png" alt="Gopher Printer" width="300">
+</div>
 
-Documentation for bash printing scripts and future Go IPP implementation.
+# Epson ET-8550 Printing Tools (Go)
 
-## Table of Contents
+Go-based tools for controlling Epson ET-8550 EcoTank printer via IPP (Internet Printing Protocol).
 
-- [Overview](#overview)
-- [Printing Scripts](#printing-scripts)
-  - [1. Photo Batch Printing (`print-folder.sh`)](#1-photo-batch-printing-print-foldersh)
-  - [2. PDF Printing (`print-pdf.sh`)](#2-pdf-printing-print-pdfsh)
-- [Available Options Reference](#available-options-reference)
-  - [Paper Sizes](#paper-sizes)
-  - [Paper Trays (InputSlot)](#paper-trays-inputslot)
-  - [Media Types](#media-types)
-  - [Print Quality](#print-quality)
-- [Typical Workflows](#typical-workflows)
-  - [Photo Printing from Lightroom](#photo-printing-from-lightroom)
-  - [Calendar/Poster Printing](#calendarposter-printing)
-  - [Document Printing](#document-printing)
-- [Quick Reference](#quick-reference)
-  - [Scripts in This Repository](#scripts-in-this-repository)
-  - [Most Common Commands](#most-common-commands)
-  - [Check Printer Status](#check-printer-status)
-- [Future Development](#future-development)
+[![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://go.dev)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](./pkg/printer)
 
 ---
 
-## Overview
+## Features
 
-Two bash scripts provide complete control over Epson ET-8550 printing via CUPS:
-- **`print-folder.sh`** - Batch print photos from folders
-- **`print-pdf.sh`** - Print PDFs with full control
-
-**Future development:** See [GO-DEVELOPMENT.md](GO-DEVELOPMENT.md) for plans to implement a Go version using IPP protocol.
-
----
-
-## Printing Scripts
-
-### 1. Photo Batch Printing (`print-folder.sh`)
-
-**Purpose:** Print all photos in a folder (Lightroom export workflow)
-
-**Syntax:**
-```bash
-# Positional parameters (backward compatible)
-./print-folder.sh [folder] [paper-size] [tray] [media-type] [quality]
-
-# Flag-based parameters (flexible - specify only what you need)
-./print-folder.sh [folder] [-p paper] [-t tray] [-m media] [-q quality]
-```
-
-**Parameters:**
-- `folder` - Path to folder containing images (default: current directory)
-- `-p` paper-size - Paper size with optional .Borderless suffix (default: 4x6.Borderless)
-- `-t` tray - Paper source: Auto, Photo, Main, Rear (default: Photo)
-- `-m` media-type - Media type using friendly names or full CUPS names (default: glossy)
-- `-q` quality - Print quality: 3 (draft), 4 (high), 5 (best) (default: 5)
-- `-h` - Show help message
-
-**Media Type Aliases (case-insensitive):**
-- `ultra` / `ultra-glossy` / `high-gloss` → Ultra Glossy Photo Paper
-- `glossy` → Standard Glossy (default)
-- `semi` / `semi-glossy` / `luster` → Semi-gloss/Luster
-- `matte` → Matte Photo Paper
-- `photo` / `photographic` → Generic Photographic
-- `plain` / `paper` → Plain Paper
-- `coated` / `inkjet` → Coated Inkjet Paper
-- `velvet` / `fine-art` → Fine Art Paper
-- Or use full CUPS names: `PhotographicHighGloss`, `PhotographicGlossy`, etc.
-
-**File Types:** JPG, JPEG, PNG, TIF
-
-**Examples:**
-```bash
-# Use all defaults (4x6, Photo tray, glossy, quality 5)
-./print-folder.sh ~/Photos
-
-# Override only quality - draft prints with other defaults
-./print-folder.sh ~/Photos -q 3
-
-# Override specific settings with flags
-./print-folder.sh ~/Photos -p A4.Borderless -m ultra -q 5
-
-# A3 borderless matte, high quality (flags)
-./print-folder.sh ~/Photos -p A3.Borderless -t Rear -m matte -q 4
-
-# Positional parameters still work (backward compatible)
-./print-folder.sh ~/Photos 4x6.Borderless Photo ultra 5
-
-# Mix: change only media type to ultra, keep other defaults
-./print-folder.sh ~/Photos -m ultra
-```
-
-**Output:**
-```
-Printing all images from: /path/to/photos
-Paper size: 4x6.Borderless
-Paper tray: Photo
-Media type: ultra → PhotographicHighGloss
-Quality: 5 (3=draft, 4=high, 5=best)
-
-Printing: IMG_001.jpg
-Printing: IMG_002.jpg
-...
-Sent 24 images to printer!
-```
+- 🖨️ **Printer Status Monitoring** - Get printer state, model, and detailed information
+- 📊 **Ink Level Monitoring** - Read all 6 ink tank levels with visual displays
+- 📄 **PDF Printing** - Print PDFs with complete control over all settings
+- 📋 **Status Reports** - Generate styled PDF reports with printer information
+- ✅ **Comprehensive Testing** - 34 tests covering all major functionality
+- 🔌 **Direct IPP Communication** - No external dependencies beyond Go libraries
 
 ---
 
-### 2. PDF Printing (`print-pdf.sh`)
+## Quick Start
 
-**Purpose:** Print PDFs with complete control over all settings
+### Prerequisites
 
-**Syntax:**
+- Go 1.18 or later
+- Epson ET-8550 printer configured in CUPS or accessible via network
+
+### Installation
+
 ```bash
-./print-pdf.sh <pdf-file> [paper-size] [tray] [media-type] [quality] [pages]
+# Clone the repository
+git clone https://github.com/Eric-Eklund/epson-printing.git
+cd epson-printing
+
+# Install dependencies
+go mod download
+
+# Build all tools
+go build -o bin/test-ipp ./cmd/test-ipp
+go build -o bin/test-print ./cmd/test-print
+go build -o bin/print-info ./cmd/print-info
 ```
 
-**Parameters:**
-- `pdf-file` - Path to PDF file (required)
-- `paper-size` - Paper size (default: A4.Borderless)
-- `tray` - Paper source (default: Auto)
-- `media-type` - Media type (default: photographic-glossy)
-- `quality` - Print quality 3-5 (default: 4)
-- `pages` - Page range (default: all)
+### Configuration
 
-**Page Range Syntax (Go-style slices):**
-| Syntax | Prints | Description |
-|--------|--------|-------------|
-| `1` | Page 1 | Single page |
-| `1-5` | Pages 1-5 | Range notation |
-| `1,3,5` | Pages 1,3,5 | Specific pages |
-| `:5` | Pages 1-5 | **Go slice: first to 5** |
-| `5:` | Pages 5-end | **Go slice: 5 to end** |
-| `all` | All pages | All (default, can omit) |
+Set the `PRINTER_URI` environment variable:
 
-**Examples:**
 ```bash
-# Basic usage (defaults: A4 borderless, auto, glossy, quality 4, all pages)
-./print-pdf.sh document.pdf
+# For local CUPS printer (recommended)
+export PRINTER_URI="http://localhost:631/printers/EPSON_ET-8550_Series"
 
-# A3+ matte, best quality, page 1 only (test print)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5 1
-
-# Same but full quality (final print)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
-
-# Print pages 2-5
-./print-pdf.sh document.pdf A4.Borderless Main stationery 4 2-5
-
-# Go-style: Print first 5 pages
-./print-pdf.sh document.pdf A4.Borderless Auto photographic-glossy 4 :5
-
-# Go-style: Print from page 5 to end
-./print-pdf.sh document.pdf A4.Borderless Auto photographic-glossy 4 5:
-
-# Draft quality on plain paper
-./print-pdf.sh document.pdf A4 Main stationery 3
-
-# Pages 1 and 3 only
-./print-pdf.sh document.pdf A4 Main stationery 4 1,3
+# Or for network printer
+export PRINTER_URI="http://EPSONXXXXXX.local:631/ipp/print"
 ```
 
-**Output:**
+**Find your printer URI:**
+```bash
+lpstat -v
+# Output: device for EPSON_ET-8550_Series: ipp://EPSONXXXXXX.local:631/ipp/print
 ```
-=========================================
-PDF PRINT SETTINGS
-=========================================
-File:        calendar.pdf
-Paper size:  13x19.Borderless
-Tray:        Rear
-Media type:  photographic-matte
-Quality:     5 (3=draft, 4=high, 5=best)
-Pages:       :5 (converted to 1-5)
-=========================================
 
-request id is EPSON_ET-8550_Series-42 (1 file(s))
-✓ Print job sent successfully!
+### Usage
+
+**Check printer status:**
+```bash
+./bin/test-ipp
+```
+Shows printer name, model, state, and ink levels for all 6 tanks.
+
+**Test print:**
+```bash
+./bin/test-print
+```
+Prints a test PDF (requires `testprint_gopher.pdf` in current directory).
+
+**Generate status report:**
+```bash
+./bin/print-info
+```
+Generates a styled PDF report with printer information and prints it.
+
+---
+
+## Available Commands
+
+### `test-ipp` - Printer Status Check
+
+Connects to the printer via IPP and displays:
+- Printer name and model
+- Current state (Idle, Processing, Stopped)
+- State reasons and messages
+- Ink levels for all 6 tanks with visual bars:
+  - **MB** - Matte Black
+  - **PB** - Photo Black
+  - **C** - Cyan
+  - **Y** - Yellow
+  - **M** - Magenta
+  - **GY** - Gray
+
+**Example output:**
+```
+===========================================
+Epson ET-8550 IPP Connection Test
+===========================================
+
+Connecting to: http://localhost:631/printers/EPSON_ET-8550_Series
+
+--- PRINTER INFORMATION ---
+Printer Info: EPSON ET-8550 Series
+Model: EPSON ET-8550
+
+--- PRINTER STATUS ---
+State: Idle
+State Reasons: none
+
+--- INK LEVELS (6-COLOR SYSTEM) ---
+Matte Black          [████████████████░░░░]  80% (#000000)
+Photo Black          [██████████████████░░]  90% (#000000)
+Cyan                 [███████████████░░░░░]  75% (#00FFFF)
+Yellow               [██████████░░░░░░░░░░]  50% (#FFFF00)
+Magenta              [████░░░░░░░░░░░░░░░░]  20% (#FF00FF)
+Gray                 [█████████████████░░░]  85% (#808080)
+
+===========================================
+✓ IPP Communication successful!
+===========================================
+```
+
+### `test-print` - Test PDF Printing
+
+Prints `testprint_gopher.pdf` with default settings:
+- Paper: A4
+- Tray: Main
+- Media: Plain paper (stationery)
+- Quality: 3 (draft)
+
+### `print-info` - Status Report Generation
+
+Generates and prints a styled PDF report containing:
+- Printer information (name, model, status)
+- Graphical ink level bars with color coding:
+  - 🟢 Green: >50% (healthy)
+  - 🟡 Yellow: 20-50% (medium)
+  - 🔴 Red: <20% (low)
+- Program information (Go version, libraries used)
+- Printer URI
+- Timestamp
+- Footer with project link
+
+The PDF is saved as `printer-status-YYYYMMDD-HHMMSS.pdf` for reference.
+
+---
+
+## Project Structure
+
+```
+.
+├── cmd/
+│   ├── test-ipp/          # Printer status checker
+│   │   └── main.go
+│   ├── test-print/        # Test print tool
+│   │   └── main.go
+│   └── print-info/        # Status report generator
+│       └── main.go
+├── pkg/
+│   └── printer/           # Core printer library
+│       ├── info.go        # Printer information and status
+│       ├── info_test.go   # Info tests
+│       ├── print.go       # PDF printing functionality
+│       ├── print_test.go  # Print tests
+│       ├── report.go      # PDF report generation
+│       ├── report_test.go # Report tests
+│       ├── options.go     # Print options and defaults
+│       ├── options_test.go# Options tests
+│       ├── format.go      # Output formatting
+│       └── format_test.go # Format tests
+├── bin/                   # Compiled binaries (gitignored)
+├── go.mod                 # Go module definition
+├── go.sum                 # Dependency checksums
+├── SETUP.md              # Detailed setup guide
+└── README.md             # This file
 ```
 
 ---
 
-## Available Options Reference
+## Library Usage
+
+### Import
+
+```go
+import "github.com/Eric-Eklund/epson-printing/pkg/printer"
+```
+
+### Get Printer Information
+
+```go
+printerURI := "http://localhost:631/printers/EPSON_ET-8550_Series"
+
+// Get all printer information
+info, err := printer.GetPrinterInfo(printerURI)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Access printer details
+fmt.Println("Printer:", info.Name)
+fmt.Println("Model:", info.Model)
+fmt.Println("State:", info.State)
+
+// Print formatted output
+info.Print()
+
+// Export to JSON
+jsonData, _ := info.ToJSON()
+fmt.Println(string(jsonData))
+```
+
+### Print PDF
+
+```go
+// Configure print options
+opts := printer.PrintOptions{
+    PaperSize: "A4.Borderless",
+    Tray:      "Main",
+    MediaType: "photographic-glossy",
+    Quality:   5, // 3=draft, 4=high, 5=best
+    PageRange: "all",
+    Copies:    1,
+}
+
+// Print PDF
+jobID, err := printer.PrintPDF(printerURI, "document.pdf", opts)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Print job sent! Job ID: %d\n", jobID)
+```
+
+### Generate Status Report
+
+```go
+// Generate PDF report
+info, _ := printer.GetPrinterInfo(printerURI)
+err := printer.GenerateStatusReport(info, printerURI, "status.pdf")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Or generate and print in one step
+pdfPath, jobID, err := printer.PrintStatusReport(printerURI)
+```
+
+---
+
+## Testing
+
+### Run All Tests
+
+```bash
+go test -v ./...
+```
+
+### Run Specific Package Tests
+
+```bash
+go test -v ./pkg/printer
+```
+
+### Run With Coverage
+
+```bash
+go test -cover ./pkg/printer
+```
+
+### Integration Tests
+
+Integration tests that require a physical printer are skipped by default. To run them:
+
+```bash
+INTEGRATION_TEST=1 go test -v ./pkg/printer
+```
+
+**Test Results:**
+- ✅ 32 unit tests passing
+- ✅ 2 integration tests (skipped by default)
+- ✅ Full coverage of report generation
+- ✅ Edge case handling verified
+
+---
+
+## Print Options Reference
 
 ### Paper Sizes
 
-**Common Sizes:**
-- `4x6.Borderless` - 101.6x152.4mm (standard photo)
-- `5x7.Borderless` - 127x178mm
-- `8x10.Borderless` - 203x254mm
-- `A4.Borderless` - 210x297mm
-- `A3.Borderless` - 297x420mm
-- `13x19.Borderless` - 329x483mm **(A3+)**
-- `Letter.Borderless` - 8.5x11"
+- `4x6.Borderless` - 4x6" photo (101.6x152.4mm)
+- `5x7.Borderless` - 5x7" photo (127x178mm)
+- `8x10.Borderless` - 8x10" photo (203x254mm)
+- `A4.Borderless` - A4 borderless (210x297mm)
+- `A3.Borderless` - A3 borderless (297x420mm)
+- `13x19.Borderless` - A3+ borderless (329x483mm)
+- `Letter.Borderless` - Letter borderless (8.5x11")
 
-**Note:** Add `.Borderless` for edge-to-edge printing, omit for margins.
+Add `.Borderless` suffix for edge-to-edge printing, omit for margins.
 
-### Paper Trays (InputSlot)
+### Paper Trays
 
-- `Auto` - Automatically select based on paper size
+- `Auto` - Auto-select based on paper size
 - `Photo` - Front photo tray (4x6, 5x7)
 - `Main` - Main cassette (A4 documents)
 - `Rear` - Rear feed (A3, A3+, thick paper)
 - `Manual` - Manual feed
 - `Disc` - CD/DVD printing
 
-**Recommendation:**
-- Small photos (4x6, 5x7) → **Photo**
-- Large/thick (A3, A3+) → **Rear**
-- Documents (A4) → **Main**
-
 ### Media Types
 
 - `photographic-glossy` - Glossy photo paper
 - `photographic-matte` - Matte photo paper
+- `PhotographicHighGloss` - Ultra glossy photo paper
 - `stationery` - Plain copy paper
 - `stationery-inkjet` - Inkjet paper
 
@@ -225,115 +332,186 @@ request id is EPSON_ET-8550_Series-42 (1 file(s))
 
 ---
 
-## Typical Workflows
+## IPP Protocol
 
-### Photo Printing from Lightroom
-```bash
-# 1. Export from Lightroom to folder
-# 2. Test print one photo with draft quality
-./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 3
+This project uses IPP (Internet Printing Protocol) for direct printer communication:
 
-# 3. Batch print all photos with best quality
-./print-folder.sh /path/to/exported-photos 4x6.Borderless Photo ultra 5
-```
+**What is IPP?**
+- Standard protocol for network printing (RFC 8010)
+- Based on HTTP/HTTPS
+- Supported by CUPS and modern printers
+- No proprietary drivers needed
 
-### Calendar/Poster Printing
-```bash
-# 1. Create in OnlyOffice/LibreOffice, export as PDF
-# 2. Test print one page (draft quality)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
+**IPP Operations Used:**
+- `Get-Printer-Attributes` - Retrieve printer status and capabilities
+- `Print-Job` - Submit print jobs with full option control
 
-# 3. Final print all pages (best quality)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
-```
-
-### Document Printing
-```bash
-# Draft review
-./print-pdf.sh document.pdf A4 Main stationery 3
-
-# Final print, first 10 pages
-./print-pdf.sh document.pdf A4 Main stationery 4 :10
-```
-
----
-
-## Quick Reference
-
-### Scripts in This Repository
-```
-print-folder.sh          - Photo batch printing
-print-pdf.sh            - PDF printing with full control
-```
-
-### Most Common Commands
-```bash
-# Batch print 4x6 photos (uses defaults: 4x6, Photo, glossy, quality 5)
-./print-folder.sh ~/Photos
-
-# Quick draft test - override only quality
-./print-folder.sh ~/Photos -q 3
-
-# Ultra glossy, best quality
-./print-folder.sh ~/Photos -m ultra
-
-# Test print A3+ matte (page 1, draft)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 3 1
-
-# Final print A3+ matte (best quality)
-./print-pdf.sh calendar.pdf 13x19.Borderless Rear photographic-matte 5
-
-# Print document (A4 plain, draft)
-./print-pdf.sh document.pdf A4 Main stationery 3
-
-# Print first 5 pages (Go-style slice)
-./print-pdf.sh document.pdf A4 Auto stationery 4 :5
-```
-
-### Check Printer Status
-
-**Command Line:**
-```bash
-lpstat -p -d                                    # Printer status
-lpoptions -p EPSON_ET-8550_Series -l           # All available options
-
-# Check ink levels via IPP
-ipptool -tv ipp://EPSONXXXXXX.local:631/ipp/print get-printer-attributes.test 2>&1 | grep -i "marker-levels"
-```
-
-**Web Interface:**
-```
-http://EPSONXXXXXX.local.:80/PRESENTATION/HTML/TOP/PRTINFO.HTML
-```
-
-**What you can monitor:**
-- **Ink Tank Levels** - All 6 color tanks (MB, PB, C, Y, M, GY)
-- **Waste Ink Maintenance Box** - Water droplet icon (far right)
-
-**About the Waste Ink Maintenance Box:**
-
-The maintenance box (water droplet symbol) collects waste ink from:
-- Print head cleaning cycles
-- Borderless printing overspray (ink sprayed beyond paper edges)
-- Initial ink charging and maintenance operations
-
-**Important Notes:**
-- Borderless printing uses more waste ink than bordered prints
-- Replacement part: **Epson T04D1** Maintenance Box
-- Printer alerts you at ~90% full
-- EcoTank boxes last thousands of prints (much larger than traditional Epson printers)
-- Monitor occasionally if doing frequent borderless printing
-
-**When to replace:** The printer will display a warning when the box is nearly full. Continue printing until prompted - no need to replace early.
+**Libraries:**
+- [OpenPrinting/goipp](https://github.com/OpenPrinting/goipp) - IPP protocol implementation
+- [go-pdf/fpdf](https://github.com/go-pdf/fpdf) - PDF generation for reports
 
 ---
 
 ## Future Development
 
-Interested in a Go implementation with GUI, cross-platform support, and advanced features? See [GO-DEVELOPMENT.md](GO-DEVELOPMENT.md) for the complete development plan.
+### Planned Features 🚀
+
+**Enhanced Monitoring:**
+- Waste ink maintenance box level monitoring
+- Print job queue monitoring
+- Historical ink usage tracking and analytics
+- Email/notification alerts for low ink
+- Web dashboard for real-time status
+
+**Advanced Printing:**
+- Batch photo printing tool (Go equivalent of `print-folder.sh`)
+- Print preview functionality
+- Saved print presets (e.g., "4x6 glossy high quality")
+- Print cost calculator (estimate ink usage per job)
+- Color profile management and ICC support
+
+**GUI Applications:**
+- **Desktop GUI** (Fyne or Gio framework)
+  - Drag-and-drop PDF printing
+  - Visual ink level display
+  - Print queue management
+  - Settings presets
+- **Web Interface**
+  - Remote printing from any device
+  - Mobile-responsive design
+  - Multi-user support
+- **Mobile Companion App**
+  - Status monitoring on phone
+  - Quick print from mobile photos
+
+**Developer Features:**
+- Plugin system for custom workflows
+- REST API server for integrations
+- Webhook support for printer events
+- Lightroom/Darktable integration
+
+### Long-term Vision 💡
+
+**Cross-Platform Distribution:**
+- Single-binary releases for Linux, macOS, Windows
+- Package manager support (apt, brew, chocolatey, AUR)
+- Docker container for headless server printing
+- Snap/Flatpak packaging
+
+**Community Features:**
+- ICC color profile sharing repository
+- Print presets community library
+- Plugin marketplace
+- Support for other Epson EcoTank models (ET-2800, ET-4800, etc.)
+
+**Enterprise Features:**
+- Print job scheduling
+- Automatic maintenance reminders
+- Ink refill cost tracking
+- Print statistics dashboard
+- Fleet management for multiple printers
+- Cloud printing integration
 
 ---
 
-**Last Updated:** December 2025
+## Why Go?
+
+**Advantages:**
+- ✅ Direct IPP communication (minimal dependencies)
+- ✅ Cross-platform compatibility (Linux, macOS, Windows)
+- ✅ Single static binary (easy distribution)
+- ✅ Type-safe API with excellent error handling
+- ✅ Built-in testing framework
+- ✅ Fast compilation and execution
+- ✅ Great concurrency for batch operations
+- ✅ Easy to build GUI applications
+
+**Bash vs Go:**
+
+The original bash scripts are now in a separate directory and still work great for quick, personal use. The Go implementation provides:
+- Better error handling and validation
+- Cross-platform compatibility
+- Foundation for GUI applications
+- Easier to test and maintain
+- Professional distribution to other users
+- Type safety and modern tooling
+
+**Recommendation:** Use Go tools for regular use and as a foundation for future development. Bash scripts remain available for quick operations if needed.
+
+---
+
+## Troubleshooting
+
+### "PRINTER_URI environment variable not set"
+
+Set the environment variable:
+```bash
+export PRINTER_URI="http://localhost:631/printers/EPSON_ET-8550_Series"
+```
+
+Or create a `.env` file (see `.env.example`).
+
+### "connection refused"
+
+- Check CUPS is running: `systemctl status cups`
+- Verify printer is on and connected
+- Verify URI is correct: `lpstat -v`
+
+### "Message truncated" or IPP errors
+
+- Use CUPS URI format: `http://localhost:631/printers/PRINTER_NAME`
+- Network URIs should use `http://` not `ipp://` scheme
+
+### Test files not found
+
+Run commands from repository root where test files are located.
+
+---
+
+## Resources
+
+**Documentation:**
+- [SETUP.md](./SETUP.md) - Detailed setup guide
+- [pkg/printer/README.md](./pkg/printer/README.md) - Library API documentation
+
+**IPP Protocol:**
+- [RFC 8010 - IPP/1.1](https://datatracker.ietf.org/doc/html/rfc8010)
+- [CUPS IPP Documentation](https://www.cups.org/doc/spec-ipp.html)
+
+**Epson ET-8550:**
+- [Product Page](https://epson.com/ecotank-et-8550)
+- 6-color ink system (MB, PB, C, Y, M, GY)
+- Maximum paper size: A3+ (13x19")
+- Network and USB connectivity
+
+---
+
+## Contributing
+
+Contributions and ideas welcome! Areas of interest:
+- Additional Epson printer model support
+- GUI application development
+- Cross-platform testing
+- Feature requests and bug reports
+
+---
+
+## License
+
+Personal project - check individual library licenses for dependencies.
+
+---
+
+## Acknowledgments
+
+- [OpenPrinting](https://openprinting.github.io/) for the excellent goipp library
+- [go-pdf](https://github.com/go-pdf) for fpdf PDF generation
+- CUPS project for IPP protocol implementation
+
+---
+
+**Project Status:** ✅ Production Ready
+**Last Updated:** December 30, 2025
 **Printer:** Epson EcoTank ET-8550
-**System:** Linux (tested on Arch-based systems)
+**Go Version:** 1.18+
+**Author:** Eric Eklund
