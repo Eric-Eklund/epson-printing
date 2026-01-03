@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/OpenPrinting/goipp"
 )
@@ -105,27 +107,60 @@ func PrintPDF(printerURI, pdfPath string, opts PrintOptions) (int, error) {
 }
 
 // convertPageRange converts page range notation to IPP range format
-// Supports: "1-5", "1,3,5", ":5", "5:", "all"
+// Supports: "1" (single page), "1-5" (range), ":5" (first 5), "5:" (from 5 to end)
+// Note: Comma-separated pages "1,3,5" will print only the first page listed
 func convertPageRange(pageRange string) goipp.Range {
-	// For now, return a simple range
-	// TODO: Implement full page range parsing
+	pageRange = strings.TrimSpace(pageRange)
+
+	// Single page: "1"
+	if !strings.ContainsAny(pageRange, "-:,") {
+		if page, err := strconv.Atoi(pageRange); err == nil && page > 0 {
+			return goipp.Range{Lower: page, Upper: page}
+		}
+	}
+
+	// Range with dash: "1-5"
+	if strings.Contains(pageRange, "-") {
+		parts := strings.Split(pageRange, "-")
+		if len(parts) == 2 {
+			lower, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+			upper, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err1 == nil && err2 == nil && lower > 0 && upper > 0 {
+				return goipp.Range{Lower: lower, Upper: upper}
+			}
+		}
+	}
+
+	// Range with colon: ":5" or "5:"
+	if strings.Contains(pageRange, ":") {
+		parts := strings.Split(pageRange, ":")
+		if len(parts) == 2 {
+			// ":5" - first 5 pages (1-5)
+			if parts[0] == "" {
+				if upper, err := strconv.Atoi(strings.TrimSpace(parts[1])); err == nil && upper > 0 {
+					return goipp.Range{Lower: 1, Upper: upper}
+				}
+			}
+			// "5:" - from page 5 to end
+			if parts[1] == "" {
+				if lower, err := strconv.Atoi(strings.TrimSpace(parts[0])); err == nil && lower > 0 {
+					return goipp.Range{Lower: lower, Upper: 999}
+				}
+			}
+		}
+	}
+
+	// Comma-separated: "1,3,5" - print only first page
+	// (IPP ranges don't support non-contiguous pages well)
+	if strings.Contains(pageRange, ",") {
+		parts := strings.Split(pageRange, ",")
+		if len(parts) > 0 {
+			if page, err := strconv.Atoi(strings.TrimSpace(parts[0])); err == nil && page > 0 {
+				return goipp.Range{Lower: page, Upper: page}
+			}
+		}
+	}
+
+	// Default: all pages
 	return goipp.Range{Lower: 1, Upper: 999}
-}
-
-// PrintTestPDF prints the test PDF (testprint_gopher.pdf) on A4 plain paper
-// This is a convenience function for testing the printer
-func PrintTestPDF(printerURI, testPDFPath string) (int, error) {
-	opts := TestPrintOptions()
-
-	fmt.Println("========================================")
-	fmt.Println("PRINTING TEST PDF")
-	fmt.Println("========================================")
-	fmt.Printf("File:        %s\n", testPDFPath)
-	fmt.Printf("Paper size:  %s\n", opts.PaperSize)
-	fmt.Printf("Tray:        %s\n", opts.Tray)
-	fmt.Printf("Media type:  %s (plain paper)\n", opts.MediaType)
-	fmt.Printf("Quality:     %d (draft)\n", opts.Quality)
-	fmt.Println("========================================")
-
-	return PrintPDF(printerURI, testPDFPath, opts)
 }

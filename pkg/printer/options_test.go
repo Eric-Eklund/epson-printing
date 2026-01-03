@@ -5,15 +5,16 @@ import "testing"
 func TestDefaultPrintOptions(t *testing.T) {
 	opts := DefaultPrintOptions()
 
+	// DefaultPrintOptions now returns the ProfileDefault (A4 draft)
 	tests := []struct {
 		name     string
 		got      interface{}
 		expected interface{}
 	}{
-		{"PaperSize", opts.PaperSize, "4x6.Borderless"},
-		{"Tray", opts.Tray, "Photo"},
-		{"MediaType", opts.MediaType, "photographic-glossy"},
-		{"Quality", opts.Quality, 5},
+		{"PaperSize", opts.PaperSize, "A4"},
+		{"Tray", opts.Tray, "Main"},
+		{"MediaType", opts.MediaType, "stationery"},
+		{"Quality", opts.Quality, 3},
 		{"PageRange", opts.PageRange, "all"},
 		{"Copies", opts.Copies, 1},
 	}
@@ -28,8 +29,14 @@ func TestDefaultPrintOptions(t *testing.T) {
 }
 
 func TestTestPrintOptions(t *testing.T) {
-	opts := TestPrintOptions()
+	opts := DefaultPrintOptions()
+	defaultOpts := DefaultPrintOptions()
 
+	if opts != defaultOpts {
+		t.Error("TestPrintOptions() should return same as DefaultPrintOptions()")
+	}
+
+	// Verify the actual values
 	tests := []struct {
 		name     string
 		got      interface{}

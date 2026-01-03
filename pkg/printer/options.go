@@ -10,26 +10,8 @@ type PrintOptions struct {
 	Copies    int    // Number of copies (default: 1)
 }
 
-// DefaultPrintOptions returns options optimized for photo printing
+// DefaultPrintOptions returns the default profile options (test/draft on A4)
+// This is the default when no profile is specified
 func DefaultPrintOptions() PrintOptions {
-	return PrintOptions{
-		PaperSize: "4x6.Borderless",
-		Tray:      "Photo",
-		MediaType: "photographic-glossy",
-		Quality:   5,
-		PageRange: "all",
-		Copies:    1,
-	}
-}
-
-// TestPrintOptions returns options for test printing on A4 plain paper
-func TestPrintOptions() PrintOptions {
-	return PrintOptions{
-		PaperSize: "A4",
-		Tray:      "Main",
-		MediaType: "stationery",
-		Quality:   3, // Draft quality for testing
-		PageRange: "all",
-		Copies:    1,
-	}
+	return MustGetPrintOptions(ProfileDefault)
 }

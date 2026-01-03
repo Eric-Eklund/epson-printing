@@ -28,10 +28,25 @@ func main() {
 
 	fmt.Println("Epson ET-8550 Test Print")
 	fmt.Println("This will print testprint_gopher.pdf on A4 plain paper")
-	fmt.Printf("Using printer: %s\n", printerURI)
+	fmt.Printf("Using printer: %s\n\n", printerURI)
 
-	// Print test PDF
-	jobID, err := printer.PrintTestPDF(printerURI, testPDF)
+	// Example: Using the default profile (document-draft)
+	// You can also use other profiles like:
+	//   printer.ProfilePhoto4x6BorderlessGlossy
+	//   printer.ProfilePhotoA3PlusBorderlessMatte
+	//   printer.ProfileDocumentBest
+	profile := printer.ProfileDefault
+	fmt.Printf("Using profile: %s\n", profile)
+	fmt.Printf("Settings: %s\n\n", printer.GetProfileDescription(profile))
+
+	// Get options from profile
+	opts, err := printer.GetPrintOptions(profile)
+	if err != nil {
+		log.Fatalf("Error getting profile: %v\n", err)
+	}
+
+	// Print the PDF
+	jobID, err := printer.PrintPDF(printerURI, testPDF, opts)
 	if err != nil {
 		log.Fatalf("Error: %v\n", err)
 	}

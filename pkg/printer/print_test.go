@@ -9,53 +9,74 @@ func TestConvertPageRange(t *testing.T) {
 	tests := []struct {
 		name      string
 		pageRange string
-		wantPanic bool
+		wantLower int
+		wantUpper int
 	}{
 		{
 			name:      "all pages",
 			pageRange: "all",
-			wantPanic: false,
+			wantLower: 1,
+			wantUpper: 999,
+		},
+		{
+			name:      "single page",
+			pageRange: "1",
+			wantLower: 1,
+			wantUpper: 1,
+		},
+		{
+			name:      "single page 5",
+			pageRange: "5",
+			wantLower: 5,
+			wantUpper: 5,
 		},
 		{
 			name:      "range 1-5",
 			pageRange: "1-5",
-			wantPanic: false,
+			wantLower: 1,
+			wantUpper: 5,
+		},
+		{
+			name:      "range 3-10",
+			pageRange: "3-10",
+			wantLower: 3,
+			wantUpper: 10,
 		},
 		{
 			name:      "first 5 pages",
 			pageRange: ":5",
-			wantPanic: false,
+			wantLower: 1,
+			wantUpper: 5,
 		},
 		{
 			name:      "from page 5",
 			pageRange: "5:",
-			wantPanic: false,
+			wantLower: 5,
+			wantUpper: 999,
 		},
 		{
-			name:      "specific pages",
+			name:      "specific pages (comma) - only first",
 			pageRange: "1,3,5",
-			wantPanic: false,
+			wantLower: 1,
+			wantUpper: 1,
+		},
+		{
+			name:      "empty string",
+			pageRange: "",
+			wantLower: 1,
+			wantUpper: 999,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					if !tt.wantPanic {
-						t.Errorf("convertPageRange() panicked unexpectedly: %v", r)
-					}
-				}
-			}()
-
 			result := convertPageRange(tt.pageRange)
 
-			// Verify result is a valid Range
-			if result.Lower < 0 {
-				t.Errorf("convertPageRange() returned invalid Lower: %d", result.Lower)
+			if result.Lower != tt.wantLower {
+				t.Errorf("convertPageRange(%q).Lower = %d, want %d", tt.pageRange, result.Lower, tt.wantLower)
 			}
-			if result.Upper < result.Lower {
-				t.Errorf("convertPageRange() returned invalid range: Lower=%d, Upper=%d", result.Lower, result.Upper)
+			if result.Upper != tt.wantUpper {
+				t.Errorf("convertPageRange(%q).Upper = %d, want %d", tt.pageRange, result.Upper, tt.wantUpper)
 			}
 		})
 	}

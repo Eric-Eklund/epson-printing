@@ -2,6 +2,7 @@ package printer
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"runtime"
 	"time"
@@ -44,7 +45,7 @@ func GenerateStatusReport(info *Info, printerURI, outputPath string) error {
 	pdf.Ln(1)
 
 	for _, ink := range info.InkLevels {
-		drawInkLevelBar(pdf, ink.Name, ink.Level, ink.Color)
+		drawInkLevelBar(pdf, ink.Name, ink.Level)
 	}
 	pdf.Ln(2)
 
@@ -110,7 +111,7 @@ func drawInfoRow(pdf *fpdf.Fpdf, key, value string) {
 }
 
 // drawInkLevelBar draws a graphical ink level bar
-func drawInkLevelBar(pdf *fpdf.Fpdf, name string, level int, color string) {
+func drawInkLevelBar(pdf *fpdf.Fpdf, name string, level int) {
 	// Ink name
 	pdf.SetFont("Helvetica", "B", 10)
 	pdf.CellFormat(40, 8, "  "+name, "", 0, "L", false, 0, "")
@@ -149,23 +150,6 @@ func drawInkLevelBar(pdf *fpdf.Fpdf, name string, level int, color string) {
 	pdf.CellFormat(20, 8, fmt.Sprintf("%3d%%", level), "", 1, "R", false, 0, "")
 }
 
-// createTextBar creates a simple ASCII progress bar for PDF
-func createTextBar(level int) string {
-	barLength := 20
-	filled := (level * barLength) / 100
-	bar := ""
-
-	for i := 0; i < barLength; i++ {
-		if i < filled {
-			bar += "#"
-		} else {
-			bar += "-"
-		}
-	}
-
-	return "[" + bar + "]"
-}
-
 // PrintStatusReport generates and prints a status report
 func PrintStatusReport(printerURI string) (string, int, error) {
 	// Get printer information
@@ -181,20 +165,15 @@ func PrintStatusReport(printerURI string) (string, int, error) {
 		return "", 0, fmt.Errorf("generating PDF: %w", err)
 	}
 
-	// Print the PDF
-	opts := PrintOptions{
-		PaperSize: "A4",
-		Tray:      "Main",
-		MediaType: "stationery",
-		Quality:   4, // High quality for reports
-		PageRange: "all",
-		Copies:    1,
-	}
+	// Print the PDF using document-normal profile (A4, quality 4)
+	opts := MustGetPrintOptions(ProfileDocumentNormal)
 
 	jobID, err := PrintPDF(printerURI, pdfPath, opts)
 	if err != nil {
 		// Clean up PDF on print error
-		os.Remove(pdfPath)
+		if removeErr := os.Remove(pdfPath); removeErr != nil {
+			log.Printf("Warning: failed to remove PDF after print error: %v", removeErr)
+		}
 		return "", 0, fmt.Errorf("printing PDF: %w", err)
 	}
 
